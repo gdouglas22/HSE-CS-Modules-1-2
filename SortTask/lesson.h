@@ -58,3 +58,4 @@ void physicalDeleteMarked();
 
 int ComputeDateTimeKey(const Lesson& L);
 void PrintLesson(const Lesson& L, int index);
+int FindTitleIndex(const std::string& key);
