@@ -11,12 +11,12 @@ static const auto& msg = GetStrings();
 
 static void RebuildIndexes()
 {
-    buildTitleIndex();
-    buildDateIndex();
+    BuildTitleIndex();
+    BuildDateIndex();
 }
 
 
-void editLesson()
+void EditLesson()
 {
     if (LessonCount == 0)
     {
@@ -26,7 +26,7 @@ void editLesson()
 
     if (TitleIdxCount == 0)
     {
-        buildTitleIndex();
+    BuildTitleIndex();
     }
 
     cin.ignore(numeric_limits<streamsize>::max(), '\n');
@@ -135,7 +135,7 @@ void editLesson()
     RebuildIndexes();
 }
 
-void logicalDeleteLesson()
+void LogicalDeleteLesson()
 {
     if (LessonCount == 0)
     {
@@ -145,7 +145,7 @@ void logicalDeleteLesson()
 
     if (TitleIdxCount == 0)
     {
-        buildTitleIndex();
+        BuildTitleIndex();
     }
 
     cin.ignore(numeric_limits<streamsize>::max(), '\n');
@@ -186,7 +186,7 @@ void logicalDeleteLesson()
     RebuildIndexes();
 }
 
-void physicalDeleteMarked()
+void PhysicalDeleteMarked()
 {
     int newCount = 0;
     for (int i = 0; i < LessonCount; i++)
@@ -203,7 +203,7 @@ void physicalDeleteMarked()
     RebuildIndexes();
 }
 
-void restoreDeletedLesson()
+void RestoreDeletedLesson()
 {
     if (LessonCount == 0)
     {

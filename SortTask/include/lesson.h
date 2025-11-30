@@ -37,26 +37,26 @@ extern int TitleIdxCount;
 extern DateTimeIndex DateIdx[MAX_LESSONS];
 extern int DateIdxCount;
 
-void menu_display();
+void MenuDisplay();
 
-void addLessonFromKeyboard();
-void printAllLessons();
-void saveToFile(const std::string& fileName, bool appendMode);
-void loadFromFile(const std::string& fileName);
+void AddLessonFromKeyboard();
+void PrintAllLessons();
+void SaveToFile(const std::string& fileName, bool appendMode);
+void LoadFromFile(const std::string& fileName);
 
-void buildTitleIndex();
-void buildDateIndex();
+void BuildTitleIndex();
+void BuildDateIndex();
 
-void printByTitleIndex(bool ascending);
-void printByDateIndex(bool ascending);
+void PrintByTitleIndex(bool ascending);
+void PrintByDateIndex(bool ascending);
 
-void searchByTitle();
-void searchByDateTime();
+void SearchByTitle();
+void SearchByDateTime();
 
-void editLesson();
-void logicalDeleteLesson();
-void restoreDeletedLesson();
-void physicalDeleteMarked();
+void EditLesson();
+void LogicalDeleteLesson();
+void RestoreDeletedLesson();
+void PhysicalDeleteMarked();
 
 int ComputeDateTimeKey(const Lesson& L);
 void PrintLesson(const Lesson& L, int index);

@@ -65,7 +65,7 @@ static int IterBinarySearchDate(int K)
     return -1;
 }
 
-void searchByTitle()
+void SearchByTitle()
 {
     if (TitleIdxCount == 0)
     {
@@ -91,7 +91,7 @@ void searchByTitle()
     }
 }
 
-void searchByDateTime()
+void SearchByDateTime()
 {
     if (DateIdxCount == 0)
     {

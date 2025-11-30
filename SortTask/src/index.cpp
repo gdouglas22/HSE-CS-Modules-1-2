@@ -40,7 +40,7 @@ static void OrderTitleIndexBySelection(TitleIndex A[], int N)
     }
 }
 
-void buildTitleIndex()
+void BuildTitleIndex()
 {
     TitleIdxCount = 0;
     for (int i = 0; i < LessonCount; i++)
@@ -81,7 +81,7 @@ static void OrderDateIndexByInsert(DateTimeIndex* A, int AN)
     }
 }
 
-void buildDateIndex()
+void BuildDateIndex()
 {
     DateIdxCount = 0;
     for (int i = 0; i < LessonCount; i++)
@@ -102,7 +102,7 @@ void buildDateIndex()
     cout << msg.dateIndexBuiltPrefix << DateIdxCount << endl;
 }
 
-void printByTitleIndex(bool ascending)
+void PrintByTitleIndex(bool ascending)
 {
     if (TitleIdxCount == 0)
     {
@@ -130,7 +130,7 @@ void printByTitleIndex(bool ascending)
     }
 }
 
-void printByDateIndex(bool ascending)
+void PrintByDateIndex(bool ascending)
 {
     if (DateIdxCount == 0)
     {

@@ -22,17 +22,17 @@ int main()
     bool running = true;
     while (running)
     {
-        menu_display();
+        MenuDisplay();
         cin >> choice;
         cout << endl;
 
         if (choice == 1)
         {
-            addLessonFromKeyboard();
+            AddLessonFromKeyboard();
         }
         else if (choice == 2)
         {
-            printAllLessons();
+            PrintAllLessons();
         }
         else if (choice == 3)
         {
@@ -40,21 +40,21 @@ int main()
             cout << msg.createOrAppendPrompt;
             cin >> mode;
             cout << endl;
-            saveToFile(fileName, mode == 2);
+            SaveToFile(fileName, mode == 2);
         }
         else if (choice == 4)
         {
-            loadFromFile(fileName);
+            LoadFromFile(fileName);
         }
         else if (choice == 5)
         {
-            buildTitleIndex();
-            printByTitleIndex(true);
+            BuildTitleIndex();
+            PrintByTitleIndex(true);
         }
         else if (choice == 6)
         {
-            buildTitleIndex();
-            printByTitleIndex(false);
+            BuildTitleIndex();
+            PrintByTitleIndex(false);
         }
         else if (choice == 7)
         {
@@ -68,13 +68,13 @@ int main()
 
             if (subChoice == 1)
             {
-                buildTitleIndex();
-                searchByTitle();
+                BuildTitleIndex();
+                SearchByTitle();
             }
             else if (subChoice == 2)
             {
-                buildDateIndex();
-                searchByDateTime();
+                BuildDateIndex();
+                SearchByDateTime();
             }
             else
             {
@@ -83,19 +83,19 @@ int main()
         }
         else if (choice == 8)
         {
-            editLesson();
+            EditLesson();
         }
         else if (choice == 9)
         {
-            logicalDeleteLesson();
+            LogicalDeleteLesson();
         }
         else if (choice == 10)
         {
-            physicalDeleteMarked();
+            PhysicalDeleteMarked();
         }
         else if (choice == 11)
         {
-            restoreDeletedLesson();
+            RestoreDeletedLesson();
         }
         else if (choice == 0)
         {

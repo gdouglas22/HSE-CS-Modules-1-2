@@ -86,7 +86,7 @@ TEST(Indexing, BuildTitleIndexSorted)
     Lessons[2] = c;
     LessonCount = 3;
 
-    buildTitleIndex();
+    BuildTitleIndex();
 
     EXPECT_EQ(3, TitleIdxCount);
     EXPECT_EQ("Algebra", TitleIdx[0].key);
@@ -109,7 +109,7 @@ TEST(Indexing, BuildDateIndexSorted)
     Lessons[2] = c;
     LessonCount = 3;
 
-    buildDateIndex();
+    BuildDateIndex();
 
     EXPECT_EQ(3, DateIdxCount);
     EXPECT_EQ(2, DateIdx[0].pos);
@@ -128,7 +128,7 @@ TEST(IO, LoadSkipsInvalidAndStopsAtCapacity)
             out << "Title" << i << ";Teacher" << i << ";01.01.2024;10:00;101;Lecture;High;0\n";
         }
     }
-    loadFromFile(fileName);
+    LoadFromFile(fileName);
     EXPECT_EQ(MAX_LESSONS, LessonCount);
 }
 
@@ -144,7 +144,7 @@ TEST(IO, LoadSkipsInvalidFormats)
         out << "BadType;Teach;01.01.2024;10:00;101;Unknown;High;0\n";
         out << "BadPriority;Teach;01.01.2024;10:00;101;Lecture;Ultra;0\n";
     }
-    loadFromFile(fileName);
+    LoadFromFile(fileName);
     EXPECT_EQ(1, LessonCount);
     EXPECT_EQ("Valid", Lessons[0].title);
 }
@@ -156,7 +156,7 @@ TEST(Search, ByTitleFoundAndNotFound)
     l1.title = "Math";
     Lessons[0] = l1;
     LessonCount = 1;
-    buildTitleIndex();
+    BuildTitleIndex();
 
     stringstream input("\nMath\n");
     stringstream output;
@@ -165,7 +165,7 @@ TEST(Search, ByTitleFoundAndNotFound)
     cin.rdbuf(input.rdbuf());
     cout.rdbuf(output.rdbuf());
 
-    searchByTitle();
+    SearchByTitle();
 
     cin.rdbuf(origIn);
     cout.rdbuf(origOut);
@@ -176,7 +176,7 @@ TEST(Search, ByTitleFoundAndNotFound)
     stringstream output2;
     cin.rdbuf(input2.rdbuf());
     cout.rdbuf(output2.rdbuf());
-    searchByTitle();
+    SearchByTitle();
     cin.rdbuf(origIn);
     cout.rdbuf(origOut);
     string out2 = output2.str();
@@ -192,7 +192,7 @@ TEST(Search, ByDateTimeFound)
     l1.time = "09:00";
     Lessons[0] = l1;
     LessonCount = 1;
-    buildDateIndex();
+    BuildDateIndex();
 
     stringstream input("\n15.04.2024\n09:00\n");
     stringstream output;
@@ -201,7 +201,7 @@ TEST(Search, ByDateTimeFound)
     cin.rdbuf(input.rdbuf());
     cout.rdbuf(output.rdbuf());
 
-    searchByDateTime();
+    SearchByDateTime();
 
     cin.rdbuf(origIn);
     cout.rdbuf(origOut);
@@ -218,24 +218,24 @@ TEST(Edit, LogicalDeleteRestorePhysical)
     l1.priority = LessonPriority::Medium;
     Lessons[0] = l1;
     LessonCount = 1;
-    buildTitleIndex();
+    BuildTitleIndex();
 
     stringstream inputDel("\nMath\n");
     streambuf* origIn = cin.rdbuf();
     cin.rdbuf(inputDel.rdbuf());
-    logicalDeleteLesson();
+    LogicalDeleteLesson();
     cin.rdbuf(origIn);
     EXPECT_TRUE(Lessons[0].deleted);
 
-    buildTitleIndex();
+    BuildTitleIndex();
     stringstream inputRestore("\nMath\n");
     cin.rdbuf(inputRestore.rdbuf());
-    restoreDeletedLesson();
+    RestoreDeletedLesson();
     cin.rdbuf(origIn);
     EXPECT_FALSE(Lessons[0].deleted);
 
     Lessons[0].deleted = true;
-    physicalDeleteMarked();
+    PhysicalDeleteMarked();
     EXPECT_EQ(0, LessonCount);
 }
 
@@ -252,7 +252,7 @@ TEST(Edit, EditLessonUpdatesAllFields)
     l1.priority = LessonPriority::Medium;
     Lessons[0] = l1;
     LessonCount = 1;
-    buildTitleIndex();
+    BuildTitleIndex();
 
     stringstream input(
         "\nMath\n"          // ключ для поиска записи
@@ -268,7 +268,7 @@ TEST(Edit, EditLessonUpdatesAllFields)
     streambuf* origIn = cin.rdbuf();
     cin.rdbuf(input.rdbuf());
 
-    editLesson();
+    EditLesson();
 
     cin.rdbuf(origIn);
 
@@ -302,15 +302,15 @@ TEST(IO, PromptHelpersAndMenuAndAddPrint)
     cin.rdbuf(input.rdbuf());
     cout.rdbuf(output.rdbuf());
 
-    addLessonFromKeyboard();
+    AddLessonFromKeyboard();
 
     stringstream menuOut;
     cout.rdbuf(menuOut.rdbuf());
-    menu_display();
+    MenuDisplay();
 
     stringstream printOut;
     cout.rdbuf(printOut.rdbuf());
-    printAllLessons();
+    PrintAllLessons();
 
     cin.rdbuf(origIn);
     cout.rdbuf(origOut);
@@ -354,7 +354,7 @@ TEST(IO, SaveToFileCreateAndAppend)
 
     const string fileName = "test_save.txt";
     remove(fileName.c_str());
-    saveToFile(fileName, false);
+    SaveToFile(fileName, false);
 
     ifstream in1(fileName);
     string line;
@@ -375,12 +375,12 @@ TEST(IO, SaveToFileCreateAndAppend)
     resetData();
     Lessons[0] = l1;
     LessonCount = 1;
-    saveToFile(fileName, false);
+    SaveToFile(fileName, false);
 
     resetData();
     Lessons[0] = l2;
     LessonCount = 1;
-    saveToFile(fileName, true);
+    SaveToFile(fileName, true);
 
     ifstream in2(fileName);
     lines = 0;
@@ -409,19 +409,19 @@ TEST(Indexing, PrintByTitleAndDate)
     Lessons[0] = a;
     LessonCount = 1;
 
-    buildTitleIndex();
-    buildDateIndex();
+    BuildTitleIndex();
+    BuildDateIndex();
 
     stringstream titleAsc;
     streambuf* origOut = cout.rdbuf();
     cout.rdbuf(titleAsc.rdbuf());
-    printByTitleIndex(true);
+    PrintByTitleIndex(true);
     cout.rdbuf(origOut);
     EXPECT_NE(string::npos, titleAsc.str().find("Alpha"));
 
     stringstream dateDesc;
     cout.rdbuf(dateDesc.rdbuf());
-    printByDateIndex(false);
+    PrintByDateIndex(false);
     cout.rdbuf(origOut);
     EXPECT_NE(string::npos, dateDesc.str().find("Alpha"));
 }

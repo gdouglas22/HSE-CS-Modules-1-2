@@ -122,7 +122,7 @@ void PrintLesson(const Lesson& L, int index)
     cout << endl;
 }
 
-void menu_display()
+void MenuDisplay()
 {
     cout << msg.menuTitle << endl;
     cout << msg.menuDataStructure << endl;
@@ -147,7 +147,7 @@ void menu_display()
     cout << msg.menuChoicePrompt;
 }
 
-void addLessonFromKeyboard()
+void AddLessonFromKeyboard()
 {
     if (LessonCount >= MAX_LESSONS)
     {
@@ -181,7 +181,7 @@ void addLessonFromKeyboard()
     cout << msg.addedPrefix << LessonCount << endl;
 }
 
-void printAllLessons()
+void PrintAllLessons()
 {
     if (LessonCount == 0)
     {
@@ -196,7 +196,7 @@ void printAllLessons()
     }
 }
 
-void saveToFile(const string& fileName, bool appendMode)
+void SaveToFile(const string& fileName, bool appendMode)
 {
     ofstream OutFile;
 
@@ -233,7 +233,7 @@ void saveToFile(const string& fileName, bool appendMode)
     cout << msg.fileWrittenPrefix << fileName << endl;
 }
 
-void loadFromFile(const string& fileName)
+void LoadFromFile(const string& fileName)
 {
     ifstream InFile(fileName);
 
