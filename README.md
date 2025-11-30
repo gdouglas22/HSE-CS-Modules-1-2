@@ -8,13 +8,13 @@
 - в
 
 ## Структура
-- `src/` — исходники приложения.
-- `include/` — заголовки.
-- `tests/` — модульные тесты (отдельный бинарник).
-- `bin/` — итоговые исполняемые файлы после сборки.
-- `build/` — объектные файлы и зависимости после сборки.
-- `SortTask.vcxproj`/`SortTask.vcxproj.filters` — проект для Visual Studio.
-- `Makefile` — сборка под Linux/macOS (g++).
+- `src/` — исходные файлы приложения
+- `include/` — заголовки
+- `tests/` — тесты
+- `bin/` — исполняемые файлы после сборки
+- `build/` — объектные файлы и зависимости после сборки
+- `SortTask.vcxproj`/`SortTask.vcxproj.filters` — проект для Visual Studio
+- `Makefile` — сборка под Linux и macOS
 
 ## Сборка под Linux/macOS (make)
 Требуется `g++` с поддержкой C++17.
