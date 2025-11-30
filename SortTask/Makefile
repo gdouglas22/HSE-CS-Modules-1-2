@@ -7,12 +7,13 @@ LDLIBS ?=
 SRCDIR := src
 TESTDIR := tests
 INCDIR := include
+TESTINCDIR := tests
 BUILDDIR := build
 APP_OBJDIR := $(BUILDDIR)/app
 TEST_OBJDIR := $(BUILDDIR)/tests
 BINDIR := bin
 
-CPPFLAGS += -I$(INCDIR)
+CPPFLAGS += -I$(INCDIR) -I$(TESTINCDIR)
 
 APP := app
 TEST_BIN := tests
@@ -32,6 +33,7 @@ DEPS := $(APP_OBJECTS:.o=.d) $(TEST_OBJECTS:.o=.d)
 vpath %.cpp $(SRCDIR) $(TESTDIR)
 
 .PHONY: all clean app tests
+.PHONY: coverage
 
 all: $(APP_TARGET) $(TEST_TARGET)
 
@@ -54,6 +56,17 @@ $(BINDIR) $(APP_OBJDIR) $(TEST_OBJDIR):
 	@mkdir -p $@
 
 clean:
-	$(RM) -r $(BINDIR) $(BUILDDIR)
+	$(RM) -r $(BINDIR) $(BUILDDIR) *.gcda *.gcno *.gcov *.html
+
+coverage:
+	$(MAKE) clean
+	$(MAKE) tests CXXFLAGS+="--coverage" LDFLAGS+="--coverage"
+	cd $(BINDIR) && ./tests
+	if command -v gcovr >/dev/null 2>&1; then \
+		gcovr -r . --object-directory $(TEST_OBJDIR) --html --html-details -o coverage.html && open coverage.html; \
+		echo "Coverage report: coverage.html"; \
+	else \
+		echo "gcovr not found; install gcovr to generate HTML coverage"; \
+	fi
 
 -include $(DEPS)

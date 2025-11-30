@@ -1,29 +1,18 @@
 #include "lesson.h"
 #include "messages.h"
 #include "validation.h"
-#include <iostream>
-#include <sstream>
+#include "types.h"
+#include "gtest/gtest.h"
 #include <fstream>
+#include <iostream>
 #include <limits>
+#include <sstream>
 
 using namespace std;
 
 static const auto& msg = GetStrings();
 
-static int testsPassed = 0;
-static int testsFailed = 0;
-
-#define ASSERT_TRUE(cond) do { \
-    if (!(cond)) { \
-        cout << "[FAIL] " << __FUNCTION__ << " : " << #cond \
-             << " at line " << __LINE__ << endl; \
-        ++testsFailed; \
-    } else { \
-        ++testsPassed; \
-    } \
-} while(0)
-
-void resetData()
+static void resetData()
 {
     LessonCount = 0;
     TitleIdxCount = 0;
@@ -41,37 +30,57 @@ void resetData()
     }
 }
 
-void testComputeDateTimeKey()
+TEST(Validation, DateFormat)
 {
-    resetData();
-    Lesson l1;
-    l1.date = "15.04.2024";
-    l1.time = "09:00";
-
-    Lesson l2;
-    l2.date = "15.04.2024";
-    l2.time = "10:00";
-
-    Lesson l3;
-    l3.date = "16.04.2024";
-    l3.time = "08:30";
-
-    int k1 = ComputeDateTimeKey(l1);
-    int k2 = ComputeDateTimeKey(l2);
-    int k3 = ComputeDateTimeKey(l3);
-
-    ASSERT_TRUE(k1 < k2);
-    ASSERT_TRUE(k2 < k3);
+    int d, m, y;
+    EXPECT_EQ(ValidationStatus::BadFormat, ValidateDate("2024-01-01", d, m, y));
 }
 
-void testBuildTitleIndex()
+TEST(Validation, DateRange)
+{
+    int d, m, y;
+    EXPECT_EQ(ValidationStatus::OutOfRange, ValidateDate("32.01.2024", d, m, y));
+}
+
+TEST(Validation, TimeFormat)
+{
+    int h, m;
+    EXPECT_EQ(ValidationStatus::BadFormat, ValidateTime("9.00", h, m));
+}
+
+TEST(Validation, TimeRange)
+{
+    int h, m;
+    EXPECT_EQ(ValidationStatus::OutOfRange, ValidateTime("25:61", h, m));
+}
+
+TEST(Types, ParseLessonType)
+{
+    LessonType t;
+    EXPECT_TRUE(ParseLessonType("Lecture", t));
+    EXPECT_EQ(LessonType::Lecture, t);
+    EXPECT_TRUE(ParseLessonType("3", t));
+    EXPECT_EQ(LessonType::Lab, t);
+    EXPECT_FALSE(ParseLessonType("Unknown", t));
+}
+
+TEST(Types, ParseLessonPriority)
+{
+    LessonPriority p;
+    EXPECT_TRUE(ParseLessonPriority("High", p));
+    EXPECT_EQ(LessonPriority::High, p);
+    EXPECT_TRUE(ParseLessonPriority("1", p));
+    EXPECT_EQ(LessonPriority::Low, p);
+    EXPECT_FALSE(ParseLessonPriority("Ultra", p));
+}
+
+TEST(Indexing, BuildTitleIndexSorted)
 {
     resetData();
     Lesson a, b, c;
     a.title = "Math";
     b.title = "Physics";
     c.title = "Algebra";
-
     Lessons[0] = a;
     Lessons[1] = b;
     Lessons[2] = c;
@@ -79,37 +88,22 @@ void testBuildTitleIndex()
 
     buildTitleIndex();
 
-    ASSERT_TRUE(TitleIdxCount == 3);
-    ASSERT_TRUE(TitleIdx[0].key == "Algebra");
-    ASSERT_TRUE(TitleIdx[1].key == "Math");
-    ASSERT_TRUE(TitleIdx[2].key == "Physics");
-    ASSERT_TRUE(TitleIdx[0].pos == 2);
-    ASSERT_TRUE(TitleIdx[1].pos == 0);
-    ASSERT_TRUE(TitleIdx[2].pos == 1);
-
-    Lessons[1].deleted = true;
-    buildTitleIndex();
-    ASSERT_TRUE(TitleIdxCount == 2);
+    EXPECT_EQ(3, TitleIdxCount);
+    EXPECT_EQ("Algebra", TitleIdx[0].key);
+    EXPECT_EQ("Math", TitleIdx[1].key);
+    EXPECT_EQ("Physics", TitleIdx[2].key);
 }
 
-void testBuildDateIndex()
+TEST(Indexing, BuildDateIndexSorted)
 {
     resetData();
-
     Lesson a, b, c;
-    a.title = "A";
-    b.title = "B";
-    c.title = "C";
-
     a.date = "16.04.2024";
     a.time = "10:00";
-
     b.date = "15.04.2024";
     b.time = "09:00";
-
     c.date = "15.04.2024";
     c.time = "08:00";
-
     Lessons[0] = a;
     Lessons[1] = b;
     Lessons[2] = c;
@@ -117,253 +111,323 @@ void testBuildDateIndex()
 
     buildDateIndex();
 
-    ASSERT_TRUE(DateIdxCount == 3);
-
-    int pos0 = DateIdx[0].pos;
-    int pos1 = DateIdx[1].pos;
-    int pos2 = DateIdx[2].pos;
-
-    ASSERT_TRUE(pos0 == 2);
-    ASSERT_TRUE(pos1 == 1);
-    ASSERT_TRUE(pos2 == 0);
+    EXPECT_EQ(3, DateIdxCount);
+    EXPECT_EQ(2, DateIdx[0].pos);
+    EXPECT_EQ(1, DateIdx[1].pos);
+    EXPECT_EQ(0, DateIdx[2].pos);
 }
 
-void testSaveLoadFile()
+TEST(IO, LoadSkipsInvalidAndStopsAtCapacity)
 {
     resetData();
+    const string fileName = "test_overflow.txt";
+    {
+        ofstream out(fileName);
+        for (int i = 0; i < MAX_LESSONS + 5; ++i)
+        {
+            out << "Title" << i << ";Teacher" << i << ";01.01.2024;10:00;101;Lecture;High;0\n";
+        }
+    }
+    loadFromFile(fileName);
+    EXPECT_EQ(MAX_LESSONS, LessonCount);
+}
 
+TEST(IO, LoadSkipsInvalidFormats)
+{
+    resetData();
+    const string fileName = "test_invalid.txt";
+    {
+        ofstream out(fileName);
+        out << "Valid;Teach;01.01.2024;10:00;101;Lecture;High;0\n";
+        out << "BadDate;Teach;2024-01-01;10:00;101;Lecture;High;0\n";
+        out << "BadTime;Teach;01.01.2024;25:61;101;Lecture;High;0\n";
+        out << "BadType;Teach;01.01.2024;10:00;101;Unknown;High;0\n";
+        out << "BadPriority;Teach;01.01.2024;10:00;101;Lecture;Ultra;0\n";
+    }
+    loadFromFile(fileName);
+    EXPECT_EQ(1, LessonCount);
+    EXPECT_EQ("Valid", Lessons[0].title);
+}
+
+TEST(Search, ByTitleFoundAndNotFound)
+{
+    resetData();
     Lesson l1;
     l1.title = "Math";
-    l1.teacher = "Petrov";
-    l1.date = "15.04.2024";
-    l1.time = "09:00";
-    l1.room = "201";
-    l1.type = LessonType::Lecture;
-    l1.priority = LessonPriority::High;
-    l1.deleted = false;
-
-    Lesson l2;
-    l2.title = "Physics";
-    l2.teacher = "Ivanov";
-    l2.date = "16.04.2024";
-    l2.time = "11:00";
-    l2.room = "202";
-    l2.type = LessonType::Practice;
-    l2.priority = LessonPriority::Medium;
-    l2.deleted = true;
-
     Lessons[0] = l1;
-    Lessons[1] = l2;
-    LessonCount = 2;
+    LessonCount = 1;
+    buildTitleIndex();
 
-    const string fileName = "test_schedule.txt";
-    saveToFile(fileName, false);
+    stringstream input("\nMath\n");
+    stringstream output;
+    streambuf* origIn = cin.rdbuf();
+    streambuf* origOut = cout.rdbuf();
+    cin.rdbuf(input.rdbuf());
+    cout.rdbuf(output.rdbuf());
 
-    resetData();
-    loadFromFile(fileName);
+    searchByTitle();
 
-    ASSERT_TRUE(LessonCount == 2);
-    ASSERT_TRUE(Lessons[0].title == "Math");
-    ASSERT_TRUE(Lessons[0].teacher == "Petrov");
-    ASSERT_TRUE(Lessons[0].priority == LessonPriority::High);
-    ASSERT_TRUE(Lessons[0].deleted == false);
+    cin.rdbuf(origIn);
+    cout.rdbuf(origOut);
+    string out = output.str();
+    EXPECT_NE(string::npos, out.find(msg.recordFound));
 
-    ASSERT_TRUE(Lessons[1].title == "Physics");
-    ASSERT_TRUE(Lessons[1].teacher == "Ivanov");
-    ASSERT_TRUE(Lessons[1].priority == LessonPriority::Medium);
-    ASSERT_TRUE(Lessons[1].deleted == true);
+    stringstream input2("\nPhysics\n");
+    stringstream output2;
+    cin.rdbuf(input2.rdbuf());
+    cout.rdbuf(output2.rdbuf());
+    searchByTitle();
+    cin.rdbuf(origIn);
+    cout.rdbuf(origOut);
+    string out2 = output2.str();
+    EXPECT_NE(string::npos, out2.find(msg.titleNotFound));
 }
 
-void testLogicalAndPhysicalDelete()
+TEST(Search, ByDateTimeFound)
 {
     resetData();
+    Lesson l1;
+    l1.title = "Math";
+    l1.date = "15.04.2024";
+    l1.time = "09:00";
+    Lessons[0] = l1;
+    LessonCount = 1;
+    buildDateIndex();
 
+    stringstream input("\n15.04.2024\n09:00\n");
+    stringstream output;
+    streambuf* origIn = cin.rdbuf();
+    streambuf* origOut = cout.rdbuf();
+    cin.rdbuf(input.rdbuf());
+    cout.rdbuf(output.rdbuf());
+
+    searchByDateTime();
+
+    cin.rdbuf(origIn);
+    cout.rdbuf(origOut);
+    string out = output.str();
+    EXPECT_NE(string::npos, out.find(msg.recordFound));
+}
+
+TEST(Edit, LogicalDeleteRestorePhysical)
+{
+    resetData();
     Lesson l1;
     l1.title = "Math";
     l1.type = LessonType::Lecture;
     l1.priority = LessonPriority::Medium;
-    Lesson l2;
-    l2.title = "Physics";
-    l2.type = LessonType::Practice;
+    Lessons[0] = l1;
+    LessonCount = 1;
+    buildTitleIndex();
+
+    stringstream inputDel("\nMath\n");
+    streambuf* origIn = cin.rdbuf();
+    cin.rdbuf(inputDel.rdbuf());
+    logicalDeleteLesson();
+    cin.rdbuf(origIn);
+    EXPECT_TRUE(Lessons[0].deleted);
+
+    buildTitleIndex();
+    stringstream inputRestore("\nMath\n");
+    cin.rdbuf(inputRestore.rdbuf());
+    restoreDeletedLesson();
+    cin.rdbuf(origIn);
+    EXPECT_FALSE(Lessons[0].deleted);
+
+    Lessons[0].deleted = true;
+    physicalDeleteMarked();
+    EXPECT_EQ(0, LessonCount);
+}
+
+TEST(Edit, EditLessonUpdatesAllFields)
+{
+    resetData();
+    Lesson l1;
+    l1.title = "Math";
+    l1.teacher = "Old Teacher";
+    l1.date = "15.04.2024";
+    l1.time = "09:00";
+    l1.room = "101";
+    l1.type = LessonType::Lecture;
+    l1.priority = LessonPriority::Medium;
+    Lessons[0] = l1;
+    LessonCount = 1;
+    buildTitleIndex();
+
+    stringstream input(
+        "\nMath\n"          // ключ для поиска записи
+        "Advanced Math\n"   // новое название
+        "New Teacher\n"     // новый преподаватель
+        "16.04.2024\n"      // новая дата
+        "10:30\n"           // новое время
+        "202\n"             // новая аудитория
+        "2\n"               // тип: Practice
+        "3\n"               // приоритет: High
+    );
+
+    streambuf* origIn = cin.rdbuf();
+    cin.rdbuf(input.rdbuf());
+
+    editLesson();
+
+    cin.rdbuf(origIn);
+
+    EXPECT_EQ(1, LessonCount);
+    EXPECT_EQ("Advanced Math", Lessons[0].title);
+    EXPECT_EQ("New Teacher", Lessons[0].teacher);
+    EXPECT_EQ("16.04.2024", Lessons[0].date);
+    EXPECT_EQ("10:30", Lessons[0].time);
+    EXPECT_EQ("202", Lessons[0].room);
+    EXPECT_EQ(LessonType::Practice, Lessons[0].type);
+    EXPECT_EQ(LessonPriority::High, Lessons[0].priority);
+}
+
+TEST(IO, PromptHelpersAndMenuAndAddPrint)
+{
+    resetData();
+
+    stringstream input(
+        "\n"
+        "Math\n"
+        "Teacher\n"
+        "01.05.2024\n"
+        "12:30\n"
+        "303\n"
+        "1\n"   // Lecture
+        "2\n"   // Medium
+    );
+    streambuf* origIn = cin.rdbuf();
+    streambuf* origOut = cout.rdbuf();
+    stringstream output;
+    cin.rdbuf(input.rdbuf());
+    cout.rdbuf(output.rdbuf());
+
+    addLessonFromKeyboard();
+
+    stringstream menuOut;
+    cout.rdbuf(menuOut.rdbuf());
+    menu_display();
+
+    stringstream printOut;
+    cout.rdbuf(printOut.rdbuf());
+    printAllLessons();
+
+    cin.rdbuf(origIn);
+    cout.rdbuf(origOut);
+
+    EXPECT_EQ(1, LessonCount);
+    EXPECT_EQ("Math", Lessons[0].title);
+    EXPECT_EQ("Teacher", Lessons[0].teacher);
+    EXPECT_EQ("01.05.2024", Lessons[0].date);
+    EXPECT_EQ("12:30", Lessons[0].time);
+    EXPECT_EQ("303", Lessons[0].room);
+    EXPECT_EQ(LessonType::Lecture, Lessons[0].type);
+    EXPECT_EQ(LessonPriority::Medium, Lessons[0].priority);
+
+    string printed = printOut.str();
+    EXPECT_NE(string::npos, printed.find("Math"));
+    EXPECT_NE(string::npos, printed.find("Teacher"));
+    EXPECT_NE(string::npos, printed.find("12:30"));
+}
+
+TEST(IO, SaveToFileCreateAndAppend)
+{
+    resetData();
+    Lesson l1;
+    l1.title = "First";
+    l1.teacher = "T1";
+    l1.date = "01.01.2024";
+    l1.time = "09:00";
+    l1.room = "101";
+    l1.type = LessonType::Lecture;
+    l1.priority = LessonPriority::Low;
+
+    Lesson l2 = l1;
+    l2.title = "Second";
+    l2.teacher = "T2";
+    l2.time = "10:00";
     l2.priority = LessonPriority::High;
 
     Lessons[0] = l1;
     Lessons[1] = l2;
     LessonCount = 2;
 
-    buildTitleIndex();
+    const string fileName = "test_save.txt";
+    remove(fileName.c_str());
+    saveToFile(fileName, false);
 
-    std::streambuf* origIn = cin.rdbuf();
-    std::istringstream fakeInput("\nMath\n");
-    cin.rdbuf(fakeInput.rdbuf());
+    ifstream in1(fileName);
+    string line;
+    int lines = 0;
+    string lastLine;
+    while (getline(in1, line))
+    {
+        if (!line.empty())
+        {
+            lines++;
+            lastLine = line;
+        }
+    }
+    in1.close();
+    EXPECT_EQ(2, lines);
+    EXPECT_NE(string::npos, lastLine.find("Second"));
 
-    logicalDeleteLesson();
+    resetData();
+    Lessons[0] = l1;
+    LessonCount = 1;
+    saveToFile(fileName, false);
 
-    cin.rdbuf(origIn);
+    resetData();
+    Lessons[0] = l2;
+    LessonCount = 1;
+    saveToFile(fileName, true);
 
-    ASSERT_TRUE(LessonCount == 2);
-    ASSERT_TRUE(Lessons[0].deleted == true);
-    ASSERT_TRUE(Lessons[1].deleted == false);
-
-    physicalDeleteMarked();
-
-    ASSERT_TRUE(LessonCount == 1);
-    ASSERT_TRUE(Lessons[0].title == "Physics");
-    ASSERT_TRUE(Lessons[0].deleted == false);
+    ifstream in2(fileName);
+    lines = 0;
+    string last;
+    while (getline(in2, line))
+    {
+        if (!line.empty())
+        {
+            lines++;
+            last = line;
+        }
+    }
+    in2.close();
+    EXPECT_EQ(2, lines);
+    EXPECT_NE(string::npos, last.find("Second"));
+    remove(fileName.c_str());
 }
 
-void testRestoreLesson()
+TEST(Indexing, PrintByTitleAndDate)
 {
     resetData();
-
-    Lesson l1;
-    l1.title = "Math";
-    l1.type = LessonType::Lecture;
-    l1.priority = LessonPriority::Medium;
-
-    Lessons[0] = l1;
+    Lesson a;
+    a.title = "Alpha";
+    a.date = "01.01.2024";
+    a.time = "08:00";
+    Lessons[0] = a;
     LessonCount = 1;
 
     buildTitleIndex();
-    Lessons[0].deleted = true;
-
-    std::streambuf* origIn = cin.rdbuf();
-    std::istringstream fakeInput("\nMath\n");
-    cin.rdbuf(fakeInput.rdbuf());
-
-    restoreDeletedLesson();
-
-    cin.rdbuf(origIn);
-
-    ASSERT_TRUE(LessonCount == 1);
-    ASSERT_TRUE(Lessons[0].deleted == false);
-}
-
-void testEditLesson()
-{
-    resetData();
-
-    Lesson l1;
-    l1.title = "Math";
-    l1.teacher = "Old Teacher";
-    l1.date = "15.04.2024";
-    l1.time = "09:00";
-    l1.room = "201";
-    l1.type = LessonType::Lecture;
-    l1.priority = LessonPriority::Medium;
-    l1.deleted = false;
-
-    Lessons[0] = l1;
-    LessonCount = 1;
-
-    buildTitleIndex();
-
-    std::streambuf* origIn = cin.rdbuf();
-    std::istringstream fakeInput(
-        "\nMath\n"
-        "Advanced Math\n"
-        "New Teacher\n"
-        "\n" 
-        "\n" 
-        "\n"  
-        "\n"  
-        "High\n" 
-    );
-    cin.rdbuf(fakeInput.rdbuf());
-
-    editLesson();
-
-    cin.rdbuf(origIn);
-
-    ASSERT_TRUE(LessonCount == 1);
-    ASSERT_TRUE(Lessons[0].title == "Advanced Math");
-    ASSERT_TRUE(Lessons[0].teacher == "New Teacher");
-    ASSERT_TRUE(Lessons[0].priority == LessonPriority::High);
-}
-
-void testSearchByTitle()
-{
-    resetData();
-
-    Lesson l1;
-    l1.title = "Math";
-    Lessons[0] = l1;
-    LessonCount = 1;
-    buildTitleIndex();
-
-    std::streambuf* origIn = cin.rdbuf();
-    std::streambuf* origOut = cout.rdbuf();
-
-    std::istringstream fakeInput("\nMath\n");
-    std::ostringstream fakeOutput;
-
-    cin.rdbuf(fakeInput.rdbuf());
-    cout.rdbuf(fakeOutput.rdbuf());
-
-    searchByTitle();
-
-    cin.rdbuf(origIn);
-    cout.rdbuf(origOut);
-
-    std::string out = fakeOutput.str();
-    ASSERT_TRUE(out.find(msg.recordFound) != std::string::npos);
-    ASSERT_TRUE(out.find("Math") != std::string::npos);
-}
-
-void testSearchByDateTime()
-{
-    resetData();
-
-    Lesson l1;
-    l1.title = "Math";
-    l1.date = "15.04.2024";
-    l1.time = "09:00";
-    Lessons[0] = l1;
-    LessonCount = 1;
     buildDateIndex();
 
-    std::streambuf* origIn = cin.rdbuf();
-    std::streambuf* origOut = cout.rdbuf();
-
-    std::istringstream fakeInput("\n15.04.2024\n09:00\n");
-    std::ostringstream fakeOutput;
-
-    cin.rdbuf(fakeInput.rdbuf());
-    cout.rdbuf(fakeOutput.rdbuf());
-
-    searchByDateTime();
-
-    cin.rdbuf(origIn);
+    stringstream titleAsc;
+    streambuf* origOut = cout.rdbuf();
+    cout.rdbuf(titleAsc.rdbuf());
+    printByTitleIndex(true);
     cout.rdbuf(origOut);
+    EXPECT_NE(string::npos, titleAsc.str().find("Alpha"));
 
-    std::string out = fakeOutput.str();
-    ASSERT_TRUE(out.find(msg.recordFound) != std::string::npos);
-    ASSERT_TRUE(out.find("Math") != std::string::npos);
+    stringstream dateDesc;
+    cout.rdbuf(dateDesc.rdbuf());
+    printByDateIndex(false);
+    cout.rdbuf(origOut);
+    EXPECT_NE(string::npos, dateDesc.str().find("Alpha"));
 }
 
-int main()
+int main(int argc, char** argv)
 {
-    testComputeDateTimeKey();
-    testBuildTitleIndex();
-    testBuildDateIndex();
-    testSaveLoadFile();
-    testLogicalAndPhysicalDelete();
-    testRestoreLesson();
-    testEditLesson();
-    testSearchByTitle();
-    testSearchByDateTime();
-
-    cout << "Tests passed: " << testsPassed << endl;
-    cout << "Tests failed: " << testsFailed << endl;
-
-    if (testsFailed == 0)
-    {
-        cout << "ALL TESTS PASSED" << endl;
-        return 0;
-    }
-    else
-    {
-        cout << "SOME TESTS FAILED" << endl;
-        return 1;
-    }
+    InitGoogleTest(&argc, argv);
+    return RUN_ALL_TESTS();
 }

@@ -211,52 +211,28 @@ void restoreDeletedLesson()
         return;
     }
 
-    if (TitleIdxCount == 0)
-    {
-        buildTitleIndex();
-    }
-
     cin.ignore(numeric_limits<streamsize>::max(), '\n');
     cout << msg.restorePrompt;
     string key;
     getline(cin, key);
 
-    int LBound = 0;
-    int RBound = TitleIdxCount - 1;
-    int idx = -1;
-    while (LBound <= RBound && idx == -1)
+    int foundPos = -1;
+    for (int i = 0; i < LessonCount && foundPos == -1; i++)
     {
-        int M = (RBound - LBound) / 2 + LBound;
-        if (TitleIdx[M].key == key)
+        if (Lessons[i].title == key)
         {
-            idx = M;
-        }
-        else if (TitleIdx[M].key > key)
-        {
-            RBound = M - 1;
-        }
-        else
-        {
-            LBound = M + 1;
+            foundPos = i;
         }
     }
 
-    if (idx == -1)
+    if (foundPos == -1)
     {
         cout << msg.recordNotFound << endl;
         return;
     }
 
-    int pos = TitleIdx[idx].pos;
-    if (!Lessons[pos].deleted)
-    {
-        cout << msg.recordRestored << endl;
-    }
-    else
-    {
-        Lessons[pos].deleted = false;
-        cout << msg.recordRestored << endl;
-    }
+    Lessons[foundPos].deleted = false;
+    cout << msg.recordRestored << endl;
 
     RebuildIndexes();
 }

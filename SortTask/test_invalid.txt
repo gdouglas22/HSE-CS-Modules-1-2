@@ -1,0 +1,5 @@
+Valid;Teach;01.01.2024;10:00;101;Lecture;High;0
+BadDate;Teach;2024-01-01;10:00;101;Lecture;High;0
+BadTime;Teach;01.01.2024;25:61;101;Lecture;High;0
+BadType;Teach;01.01.2024;10:00;101;Unknown;High;0
+BadPriority;Teach;01.01.2024;10:00;101;Lecture;Ultra;0
