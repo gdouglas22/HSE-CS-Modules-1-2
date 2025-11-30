@@ -56,7 +56,7 @@ $(BINDIR) $(APP_OBJDIR) $(TEST_OBJDIR):
 	@mkdir -p $@
 
 clean:
-	$(RM) -r $(BINDIR) $(BUILDDIR) *.gcda *.gcno *.gcov *.html
+	$(RM) -r $(BINDIR) $(BUILDDIR) *.gcda *.gcno *.gcov *.html *.css
 
 coverage:
 	$(MAKE) clean
