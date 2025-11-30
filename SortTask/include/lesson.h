@@ -1,5 +1,6 @@
-﻿#pragma once
+#pragma once
 #include <string>
+#include "types.h"
 
 const int MAX_LESSONS = 1000;
 
@@ -10,8 +11,8 @@ struct Lesson
     std::string date;
     std::string time;
     std::string room;
-    std::string type;
-    std::string priority;
+    LessonType type = LessonType::Other;
+    LessonPriority priority = LessonPriority::Medium;
     bool deleted = false;
 };
 
@@ -54,6 +55,7 @@ void searchByDateTime();
 
 void editLesson();
 void logicalDeleteLesson();
+void restoreDeletedLesson();
 void physicalDeleteMarked();
 
 int ComputeDateTimeKey(const Lesson& L);

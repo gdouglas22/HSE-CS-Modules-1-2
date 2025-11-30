@@ -1,10 +1,14 @@
 #include "lesson.h"
+#include "messages.h"
+#include "validation.h"
 #include <iostream>
 #include <sstream>
 #include <fstream>
 #include <limits>
 
 using namespace std;
+
+static const auto& msg = GetStrings();
 
 static int testsPassed = 0;
 static int testsFailed = 0;
@@ -31,8 +35,8 @@ void resetData()
         Lessons[i].date.clear();
         Lessons[i].time.clear();
         Lessons[i].room.clear();
-        Lessons[i].type.clear();
-        Lessons[i].priority.clear();
+        Lessons[i].type = LessonType::Other;
+        Lessons[i].priority = LessonPriority::Medium;
         Lessons[i].deleted = false;
     }
 }
@@ -134,8 +138,8 @@ void testSaveLoadFile()
     l1.date = "15.04.2024";
     l1.time = "09:00";
     l1.room = "201";
-    l1.type = "Lecture";
-    l1.priority = "High";
+    l1.type = LessonType::Lecture;
+    l1.priority = LessonPriority::High;
     l1.deleted = false;
 
     Lesson l2;
@@ -144,8 +148,8 @@ void testSaveLoadFile()
     l2.date = "16.04.2024";
     l2.time = "11:00";
     l2.room = "202";
-    l2.type = "Practice";
-    l2.priority = "Medium";
+    l2.type = LessonType::Practice;
+    l2.priority = LessonPriority::Medium;
     l2.deleted = true;
 
     Lessons[0] = l1;
@@ -161,12 +165,12 @@ void testSaveLoadFile()
     ASSERT_TRUE(LessonCount == 2);
     ASSERT_TRUE(Lessons[0].title == "Math");
     ASSERT_TRUE(Lessons[0].teacher == "Petrov");
-    ASSERT_TRUE(Lessons[0].priority == "High");
+    ASSERT_TRUE(Lessons[0].priority == LessonPriority::High);
     ASSERT_TRUE(Lessons[0].deleted == false);
 
     ASSERT_TRUE(Lessons[1].title == "Physics");
     ASSERT_TRUE(Lessons[1].teacher == "Ivanov");
-    ASSERT_TRUE(Lessons[1].priority == "Medium");
+    ASSERT_TRUE(Lessons[1].priority == LessonPriority::Medium);
     ASSERT_TRUE(Lessons[1].deleted == true);
 }
 
@@ -176,8 +180,12 @@ void testLogicalAndPhysicalDelete()
 
     Lesson l1;
     l1.title = "Math";
+    l1.type = LessonType::Lecture;
+    l1.priority = LessonPriority::Medium;
     Lesson l2;
     l2.title = "Physics";
+    l2.type = LessonType::Practice;
+    l2.priority = LessonPriority::High;
 
     Lessons[0] = l1;
     Lessons[1] = l2;
@@ -204,6 +212,33 @@ void testLogicalAndPhysicalDelete()
     ASSERT_TRUE(Lessons[0].deleted == false);
 }
 
+void testRestoreLesson()
+{
+    resetData();
+
+    Lesson l1;
+    l1.title = "Math";
+    l1.type = LessonType::Lecture;
+    l1.priority = LessonPriority::Medium;
+
+    Lessons[0] = l1;
+    LessonCount = 1;
+
+    buildTitleIndex();
+    Lessons[0].deleted = true;
+
+    std::streambuf* origIn = cin.rdbuf();
+    std::istringstream fakeInput("\nMath\n");
+    cin.rdbuf(fakeInput.rdbuf());
+
+    restoreDeletedLesson();
+
+    cin.rdbuf(origIn);
+
+    ASSERT_TRUE(LessonCount == 1);
+    ASSERT_TRUE(Lessons[0].deleted == false);
+}
+
 void testEditLesson()
 {
     resetData();
@@ -214,8 +249,8 @@ void testEditLesson()
     l1.date = "15.04.2024";
     l1.time = "09:00";
     l1.room = "201";
-    l1.type = "Lecture";
-    l1.priority = "Medium";
+    l1.type = LessonType::Lecture;
+    l1.priority = LessonPriority::Medium;
     l1.deleted = false;
 
     Lessons[0] = l1;
@@ -243,7 +278,7 @@ void testEditLesson()
     ASSERT_TRUE(LessonCount == 1);
     ASSERT_TRUE(Lessons[0].title == "Advanced Math");
     ASSERT_TRUE(Lessons[0].teacher == "New Teacher");
-    ASSERT_TRUE(Lessons[0].priority == "High");
+    ASSERT_TRUE(Lessons[0].priority == LessonPriority::High);
 }
 
 void testSearchByTitle()
@@ -271,7 +306,7 @@ void testSearchByTitle()
     cout.rdbuf(origOut);
 
     std::string out = fakeOutput.str();
-    ASSERT_TRUE(out.find("Найдена запись") != std::string::npos);
+    ASSERT_TRUE(out.find(msg.recordFound) != std::string::npos);
     ASSERT_TRUE(out.find("Math") != std::string::npos);
 }
 
@@ -302,7 +337,7 @@ void testSearchByDateTime()
     cout.rdbuf(origOut);
 
     std::string out = fakeOutput.str();
-    ASSERT_TRUE(out.find("Найдена запись") != std::string::npos);
+    ASSERT_TRUE(out.find(msg.recordFound) != std::string::npos);
     ASSERT_TRUE(out.find("Math") != std::string::npos);
 }
 
@@ -313,6 +348,7 @@ int main()
     testBuildDateIndex();
     testSaveLoadFile();
     testLogicalAndPhysicalDelete();
+    testRestoreLesson();
     testEditLesson();
     testSearchByTitle();
     testSearchByDateTime();

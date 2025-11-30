@@ -1,0 +1,2 @@
+Math;Petrov;15.04.2024;09:00;201;Lecture;High;0
+Physics;Ivanov;16.04.2024;11:00;202;Practice;Medium;1
