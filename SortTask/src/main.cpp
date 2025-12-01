@@ -13,11 +13,6 @@ int main()
     const auto& msg = GetStrings();
 
     int choice;
-    string fileName;
-
-    cout << msg.promptFileName;
-    cin >> fileName;
-    cout << endl;
 
     bool running = true;
     while (running)
@@ -36,6 +31,10 @@ int main()
         }
         else if (choice == 3)
         {
+            string fileName;
+            cout << msg.promptFileName;
+            cin >> fileName;
+            cout << endl;
             int mode;
             cout << msg.createOrAppendPrompt;
             cin >> mode;
@@ -44,56 +43,45 @@ int main()
         }
         else if (choice == 4)
         {
+            string fileName;
+            cout << msg.promptFileName;
+            cin >> fileName;
+            cout << endl;
             LoadFromFile(fileName);
         }
         else if (choice == 5)
         {
-            BuildTitleIndex();
-            PrintByTitleIndex(true);
+            ChooseIndexField();
         }
         else if (choice == 6)
         {
-            BuildTitleIndex();
-            PrintByTitleIndex(false);
+            BuildIndexForCurrentField();
         }
         else if (choice == 7)
         {
-            int subChoice;
-            cout << msg.searchMenuHeading << endl;
-            cout << msg.searchByTitleOption << endl;
-            cout << msg.searchByDateOption << endl;
-            cout << msg.searchChoicePrompt;
-            cin >> subChoice;
-            cout << endl;
-
-            if (subChoice == 1)
-            {
-                BuildTitleIndex();
-                SearchByTitle();
-            }
-            else if (subChoice == 2)
-            {
-                BuildDateIndex();
-                SearchByDateTime();
-            }
-            else
-            {
-                cout << msg.searchInvalidOption << endl;
-            }
+            PrintByCurrentIndex(true);
         }
         else if (choice == 8)
         {
-            EditLesson();
+            PrintByCurrentIndex(false);
         }
         else if (choice == 9)
         {
-            LogicalDeleteLesson();
+            SearchByCurrentIndex();
         }
         else if (choice == 10)
         {
-            PhysicalDeleteMarked();
+            EditLesson();
         }
         else if (choice == 11)
+        {
+            LogicalDeleteLesson();
+        }
+        else if (choice == 12)
+        {
+            PhysicalDeleteMarked();
+        }
+        else if (choice == 13)
         {
             RestoreDeletedLesson();
         }

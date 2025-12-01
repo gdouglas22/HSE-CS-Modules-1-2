@@ -1,13 +1,17 @@
 #include "types.h"
-#include <algorithm>
-#include <cctype>
 
 static std::string ToLower(const std::string& s)
 {
-    std::string res = s;
-    for (size_t i = 0; i < res.size(); ++i)
+    std::string res;
+    res.resize(s.size());
+    for (size_t i = 0; i < s.size(); ++i)
     {
-        res[i] = static_cast<char>(std::tolower(static_cast<unsigned char>(res[i])));
+        char c = s[i];
+        if (c >= 'A' && c <= 'Z')
+        {
+            c = static_cast<char>(c - 'A' + 'a');
+        }
+        res[i] = c;
     }
     return res;
 }

@@ -16,10 +16,13 @@ struct Lesson
     bool deleted = false;
 };
 
-struct TitleIndex
+struct TitleTreeNode
 {
     std::string key;
     int pos;
+    int left = -1;
+    int right = -1;
+    int height = 1;
 };
 
 struct DateTimeIndex
@@ -28,14 +31,36 @@ struct DateTimeIndex
     int pos;
 };
 
+struct IntIndex
+{
+    int key;
+    int pos;
+};
+
 extern Lesson Lessons[MAX_LESSONS];
 extern int LessonCount;
 
-extern TitleIndex TitleIdx[MAX_LESSONS];
-extern int TitleIdxCount;
+extern TitleTreeNode StringTreeNodes[MAX_LESSONS];
+extern int StringTreeRoot;
+extern int StringTreeCount;
 
 extern DateTimeIndex DateIdx[MAX_LESSONS];
 extern int DateIdxCount;
+
+extern IntIndex IntIdx[MAX_LESSONS];
+extern int IntIdxCount;
+
+enum IndexField
+{
+    FieldTitle = 1,
+    FieldTeacher = 2,
+    FieldDateTime = 3,
+    FieldRoom = 4,
+    FieldType = 5,
+    FieldPriority = 6
+};
+
+extern int CurrentIndexField;
 
 void MenuDisplay();
 
@@ -46,12 +71,16 @@ void LoadFromFile(const std::string& fileName);
 
 void BuildTitleIndex();
 void BuildDateIndex();
+void BuildIndexForCurrentField();
+void PrintByCurrentIndex(bool ascending);
 
 void PrintByTitleIndex(bool ascending);
 void PrintByDateIndex(bool ascending);
 
 void SearchByTitle();
 void SearchByDateTime();
+void SearchByCurrentIndex();
+void ChooseIndexField();
 
 void EditLesson();
 void LogicalDeleteLesson();
@@ -60,4 +89,5 @@ void PhysicalDeleteMarked();
 
 int ComputeDateTimeKey(const Lesson& L);
 void PrintLesson(const Lesson& L, int index);
-int FindTitleIndex(const std::string& key);
+int RecursiveFindTitlePos(const std::string& key);
+int IterativeFindTitlePos(const std::string& key);

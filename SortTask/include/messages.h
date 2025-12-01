@@ -48,6 +48,15 @@ struct Strings
     const char* menuOpt11;
     const char* menuOpt0;
     const char* menuChoicePrompt;
+    const char* menuOptSelectIndex;
+    const char* menuOptBuildIndex;
+    const char* menuOptPrintAsc;
+    const char* menuOptPrintDesc;
+    const char* menuOptSearchCurrent;
+    const char* menuOptEditEntry;
+    const char* menuOptLogicalDelete;
+    const char* menuOptPhysicalDelete;
+    const char* menuOptRestore;
 
     const char* tooManyLessons;
     const char* promptTitle;
@@ -62,6 +71,23 @@ struct Strings
     const char* promptPriorityOptions;
     const char* invalidPriorityOption;
     const char* addedPrefix;
+    const char* selectFieldHeading;
+    const char* selectFieldOptionTitle;
+    const char* selectFieldOptionTeacher;
+    const char* selectFieldOptionDateTime;
+    const char* selectFieldOptionRoom;
+    const char* selectFieldOptionType;
+    const char* selectFieldOptionPriority;
+    const char* invalidFieldChoice;
+    const char* fieldTitleName;
+    const char* fieldTeacherName;
+    const char* fieldDateTimeName;
+    const char* fieldRoomName;
+    const char* fieldTypeName;
+    const char* fieldPriorityName;
+    const char* genericSearchPrompt;
+    const char* genericRestorePrompt;
+    const char* invalidGenericValue;
 
     const char* noRecordsToPrint;
     const char* printHeading;

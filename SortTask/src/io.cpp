@@ -10,6 +10,17 @@ using namespace std;
 
 static const auto& msg = GetStrings();
 
+static string FieldName(int field)
+{
+    if (field == FieldTitle) return msg.fieldTitleName;
+    if (field == FieldTeacher) return msg.fieldTeacherName;
+    if (field == FieldDateTime) return msg.fieldDateTimeName;
+    if (field == FieldRoom) return msg.fieldRoomName;
+    if (field == FieldType) return msg.fieldTypeName;
+    if (field == FieldPriority) return msg.fieldPriorityName;
+    return msg.invalidFieldChoice;
+}
+
 static string PromptValidatedDate(const string& prompt)
 {
     string value;
@@ -136,15 +147,41 @@ void MenuDisplay()
     cout << msg.menuOpt2 << endl;
     cout << msg.menuOpt3 << endl;
     cout << msg.menuOpt4 << endl;
-    cout << msg.menuOpt5 << endl;
-    cout << msg.menuOpt6 << endl;
-    cout << msg.menuOpt7 << endl;
-    cout << msg.menuOpt8 << endl;
-    cout << msg.menuOpt9 << endl;
-    cout << msg.menuOpt10 << endl;
-    cout << msg.menuOpt11 << endl;
+    cout << msg.menuOptSelectIndex << " (текущее: " << FieldName(CurrentIndexField) << ")" << endl;
+    cout << msg.menuOptBuildIndex << endl;
+    cout << msg.menuOptPrintAsc << endl;
+    cout << msg.menuOptPrintDesc << endl;
+    cout << msg.menuOptSearchCurrent << endl;
+    cout << msg.menuOptEditEntry << endl;
+    cout << msg.menuOptLogicalDelete << endl;
+    cout << msg.menuOptPhysicalDelete << endl;
+    cout << msg.menuOptRestore << endl;
     cout << msg.menuOpt0 << endl;
     cout << msg.menuChoicePrompt;
+}
+
+void ChooseIndexField()
+{
+    cout << msg.selectFieldHeading << endl;
+    cout << msg.selectFieldOptionTitle << endl;
+    cout << msg.selectFieldOptionTeacher << endl;
+    cout << msg.selectFieldOptionDateTime << endl;
+    cout << msg.selectFieldOptionRoom << endl;
+    cout << msg.selectFieldOptionType << endl;
+    cout << msg.selectFieldOptionPriority << endl;
+    cout << msg.menuChoicePrompt;
+    int f = 0;
+    cin >> f;
+    cout << endl;
+    if (f >= 1 && f <= 6)
+    {
+        CurrentIndexField = f;
+        BuildIndexForCurrentField();
+    }
+    else
+    {
+        cout << msg.invalidFieldChoice << endl;
+    }
 }
 
 void AddLessonFromKeyboard()
@@ -179,6 +216,7 @@ void AddLessonFromKeyboard()
     LessonCount++;
 
     cout << msg.addedPrefix << LessonCount << endl;
+    BuildIndexForCurrentField();
 }
 
 void PrintAllLessons()
@@ -243,7 +281,12 @@ void LoadFromFile(const string& fileName)
         return;
     }
 
-    LessonCount = 0;
+    if (LessonCount >= MAX_LESSONS)
+    {
+        cout << msg.arrayFullWarning << endl;
+        return;
+    }
+
     string InLineVar;
     bool stopLoading = false;
 
@@ -342,4 +385,5 @@ void LoadFromFile(const string& fileName)
 
     InFile.close();
     cout << msg.loadFinishedPrefix << LessonCount << endl;
+    BuildIndexForCurrentField();
 }

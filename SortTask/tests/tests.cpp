@@ -15,7 +15,8 @@ static const auto& msg = GetStrings();
 static void resetData()
 {
     LessonCount = 0;
-    TitleIdxCount = 0;
+    StringTreeRoot = -1;
+    StringTreeCount = 0;
     DateIdxCount = 0;
     for (int i = 0; i < MAX_LESSONS; ++i)
     {
@@ -28,6 +29,216 @@ static void resetData()
         Lessons[i].priority = LessonPriority::Medium;
         Lessons[i].deleted = false;
     }
+}
+
+TEST(Search, ByCurrentFieldDateEmptyAndNotFound)
+{
+    resetData();
+    CurrentIndexField = FieldDateTime;
+    BuildIndexForCurrentField();
+    stringstream input(
+        "\n01.01.2024\n"
+        "08:00\n"
+    );
+    streambuf* origIn = cin.rdbuf();
+    streambuf* origOut = cout.rdbuf();
+    stringstream output;
+    cin.rdbuf(input.rdbuf());
+    cout.rdbuf(output.rdbuf());
+    SearchByCurrentIndex();
+    cin.rdbuf(origIn);
+    cout.rdbuf(origOut);
+    string out = output.str();
+    EXPECT_NE(string::npos, out.find(msg.buildDateIndexFirst));
+}
+
+TEST(Search, ByCurrentFieldTypeInvalid)
+{
+    resetData();
+    Lesson a;
+    a.type = LessonType::Lecture;
+    Lessons[0] = a;
+    LessonCount = 1;
+    CurrentIndexField = FieldType;
+    BuildIndexForCurrentField();
+    stringstream input("\nBad\n");
+    streambuf* origIn = cin.rdbuf();
+    streambuf* origOut = cout.rdbuf();
+    stringstream output;
+    cin.rdbuf(input.rdbuf());
+    cout.rdbuf(output.rdbuf());
+    SearchByCurrentIndex();
+    cin.rdbuf(origIn);
+    cout.rdbuf(origOut);
+    string out = output.str();
+    EXPECT_NE(string::npos, out.find(msg.invalidGenericValue));
+}
+
+TEST(Search, BinarySearchDateNotFoundBranches)
+{
+    resetData();
+    Lesson a, b;
+    a.date = "01.01.2024";
+    a.time = "08:00";
+    b.date = "02.01.2024";
+    b.time = "09:00";
+    Lessons[0] = a;
+    Lessons[1] = b;
+    LessonCount = 2;
+    BuildDateIndex();
+    int idx = -1;
+    idx = -1;
+    int L = 0, R = DateIdxCount - 1;
+    int key = ComputeDateTimeKey(a) - 1;
+    while (L <= R)
+    {
+        int M = (R - L) / 2 + L;
+        if (DateIdx[M].key == key) { idx = M; break; }
+        if (DateIdx[M].key > key) R = M - 1; else L = M + 1;
+    }
+    EXPECT_EQ(-1, idx);
+    L = 0; R = DateIdxCount - 1; idx = -1; key = ComputeDateTimeKey(b) + 1;
+    while (L <= R)
+    {
+        int M = (R - L) / 2 + L;
+        if (DateIdx[M].key == key) { idx = M; break; }
+        if (DateIdx[M].key > key) R = M - 1; else L = M + 1;
+    }
+    EXPECT_EQ(-1, idx);
+}
+
+TEST(Search, TitleSearchBranchesLeftRight)
+{
+    resetData();
+    Lesson a, b, c;
+    a.title = "B";
+    b.title = "A";
+    c.title = "C";
+    Lessons[0] = a;
+    Lessons[1] = b;
+    Lessons[2] = c;
+    LessonCount = 3;
+    BuildTitleIndex();
+    stringstream input("\nB\n");
+    stringstream output;
+    streambuf* origIn = cin.rdbuf();
+    streambuf* origOut = cout.rdbuf();
+    cin.rdbuf(input.rdbuf());
+    cout.rdbuf(output.rdbuf());
+    SearchByTitle();
+    cin.rdbuf(origIn);
+    cout.rdbuf(origOut);
+    string out = output.str();
+    EXPECT_NE(string::npos, out.find("B"));
+}
+
+TEST(Search, CurrentFieldDateNotFound)
+{
+    resetData();
+    CurrentIndexField = FieldDateTime;
+    Lesson a;
+    a.date = "01.01.2024";
+    a.time = "08:00";
+    Lessons[0] = a;
+    LessonCount = 1;
+    BuildIndexForCurrentField();
+    stringstream input(
+        "\n02.01.2024\n"
+        "08:00\n"
+    );
+    stringstream output;
+    streambuf* origIn = cin.rdbuf();
+    streambuf* origOut = cout.rdbuf();
+    cin.rdbuf(input.rdbuf());
+    cout.rdbuf(output.rdbuf());
+    SearchByCurrentIndex();
+    cin.rdbuf(origIn);
+    cout.rdbuf(origOut);
+    string out = output.str();
+    EXPECT_NE(string::npos, out.find(msg.dateNotFound));
+}
+
+TEST(Search, CurrentFieldDateNotBuilt)
+{
+    resetData();
+    CurrentIndexField = FieldDateTime;
+    DateIdxCount = 0;
+    stringstream output;
+    streambuf* origOut = cout.rdbuf();
+    cout.rdbuf(output.rdbuf());
+    SearchByCurrentIndex();
+    cout.rdbuf(origOut);
+    string out = output.str();
+    EXPECT_NE(string::npos, out.find(msg.buildDateIndexFirst));
+}
+
+TEST(Search, CurrentFieldTypeEmptyIndex)
+{
+    resetData();
+    CurrentIndexField = FieldType;
+    IntIdxCount = 0;
+    stringstream output;
+    streambuf* origOut = cout.rdbuf();
+    cout.rdbuf(output.rdbuf());
+    SearchByCurrentIndex();
+    cout.rdbuf(origOut);
+    string out = output.str();
+    EXPECT_NE(string::npos, out.find(msg.dateIndexEmpty));
+}
+
+TEST(Search, CurrentFieldPriorityDuplicatesRightScan)
+{
+    resetData();
+    Lesson a, b;
+    a.priority = LessonPriority::High;
+    b.priority = LessonPriority::High;
+    a.title = "First";
+    b.title = "Second";
+    Lessons[0] = a;
+    Lessons[1] = b;
+    LessonCount = 2;
+    CurrentIndexField = FieldPriority;
+    BuildIndexForCurrentField();
+    stringstream input("\n3\n");
+    stringstream output;
+    streambuf* origIn = cin.rdbuf();
+    streambuf* origOut = cout.rdbuf();
+    cin.rdbuf(input.rdbuf());
+    cout.rdbuf(output.rdbuf());
+    SearchByCurrentIndex();
+    cin.rdbuf(origIn);
+    cout.rdbuf(origOut);
+    string out = output.str();
+    EXPECT_NE(string::npos, out.find(msg.recordFound));
+    EXPECT_NE(string::npos, out.find("First"));
+    EXPECT_NE(string::npos, out.find("Second"));
+}
+
+TEST(Search, ByTitleWhenIndexEmpty)
+{
+    resetData();
+    CurrentIndexField = FieldTitle;
+    StringTreeRoot = -1;
+    stringstream output;
+    streambuf* origOut = cout.rdbuf();
+    cout.rdbuf(output.rdbuf());
+    SearchByTitle();
+    cout.rdbuf(origOut);
+    string out = output.str();
+    EXPECT_NE(string::npos, out.find(msg.buildTitleIndexFirst));
+}
+
+TEST(Search, ByDateTimeIndexEmpty)
+{
+    resetData();
+    DateIdxCount = 0;
+    stringstream output;
+    streambuf* origOut = cout.rdbuf();
+    cout.rdbuf(output.rdbuf());
+    SearchByDateTime();
+    cout.rdbuf(origOut);
+    string out = output.str();
+    EXPECT_NE(string::npos, out.find(msg.buildDateIndexFirst));
 }
 
 TEST(Validation, DateFormat)
@@ -88,10 +299,10 @@ TEST(Indexing, BuildTitleIndexSorted)
 
     BuildTitleIndex();
 
-    EXPECT_EQ(3, TitleIdxCount);
-    EXPECT_EQ("Algebra", TitleIdx[0].key);
-    EXPECT_EQ("Math", TitleIdx[1].key);
-    EXPECT_EQ("Physics", TitleIdx[2].key);
+    EXPECT_EQ(3, StringTreeCount);
+    EXPECT_EQ(2, IterativeFindTitlePos("Algebra"));
+    EXPECT_EQ(0, IterativeFindTitlePos("Math"));
+    EXPECT_EQ(1, IterativeFindTitlePos("Physics"));
 }
 
 TEST(Indexing, BuildDateIndexSorted)
@@ -115,6 +326,66 @@ TEST(Indexing, BuildDateIndexSorted)
     EXPECT_EQ(2, DateIdx[0].pos);
     EXPECT_EQ(1, DateIdx[1].pos);
     EXPECT_EQ(0, DateIdx[2].pos);
+}
+
+TEST(Indexing, BuildIndexForTypeAndPriority)
+{
+    resetData();
+    Lesson a, b;
+    a.type = LessonType::Lecture;
+    b.type = LessonType::Practice;
+    a.priority = LessonPriority::Low;
+    b.priority = LessonPriority::High;
+    Lessons[0] = a;
+    Lessons[1] = b;
+    LessonCount = 2;
+
+    CurrentIndexField = FieldType;
+    BuildIndexForCurrentField();
+    EXPECT_EQ(2, IntIdxCount);
+    CurrentIndexField = FieldPriority;
+    BuildIndexForCurrentField();
+    EXPECT_EQ(2, IntIdxCount);
+}
+
+TEST(Indexing, AVLRotations)
+{
+    resetData();
+    Lesson a, b, c, d;
+    a.title = "C";
+    b.title = "B";
+    c.title = "A";
+    d.title = "D";
+    Lessons[0] = a;
+    Lessons[1] = b;
+    Lessons[2] = c;
+    Lessons[3] = d;
+    LessonCount = 4;
+    CurrentIndexField = FieldTitle;
+    BuildIndexForCurrentField();
+    EXPECT_NE(-1, StringTreeRoot);
+
+    resetData();
+    a.title = "A";
+    b.title = "C";
+    c.title = "B";
+    Lessons[0] = a;
+    Lessons[1] = b;
+    Lessons[2] = c;
+    LessonCount = 3;
+    BuildIndexForCurrentField();
+    EXPECT_NE(-1, StringTreeRoot);
+
+    resetData();
+    a.title = "C";
+    b.title = "A";
+    c.title = "B";
+    Lessons[0] = a;
+    Lessons[1] = b;
+    Lessons[2] = c;
+    LessonCount = 3;
+    BuildIndexForCurrentField();
+    EXPECT_NE(-1, StringTreeRoot);
 }
 
 TEST(IO, LoadSkipsInvalidAndStopsAtCapacity)
@@ -147,6 +418,26 @@ TEST(IO, LoadSkipsInvalidFormats)
     LoadFromFile(fileName);
     EXPECT_EQ(1, LessonCount);
     EXPECT_EQ("Valid", Lessons[0].title);
+}
+
+TEST(IO, LoadMultipleFilesAccumulating)
+{
+    resetData();
+    const string file1 = "multi1.txt";
+    const string file2 = "multi2.txt";
+    {
+        ofstream out(file1);
+        out << "One;Teach;01.01.2024;08:00;101;Lecture;Low;0\n";
+    }
+    {
+        ofstream out(file2);
+        out << "Two;Teach;02.01.2024;09:00;102;Practice;High;0\n";
+    }
+    LoadFromFile(file1);
+    LoadFromFile(file2);
+    EXPECT_EQ(2, LessonCount);
+    EXPECT_EQ("One", Lessons[0].title);
+    EXPECT_EQ("Two", Lessons[1].title);
 }
 
 TEST(Search, ByTitleFoundAndNotFound)
@@ -190,8 +481,11 @@ TEST(Search, ByDateTimeFound)
     l1.title = "Math";
     l1.date = "15.04.2024";
     l1.time = "09:00";
+    Lesson l2 = l1;
+    l2.title = "Physics";
+    Lessons[1] = l2;
     Lessons[0] = l1;
-    LessonCount = 1;
+    LessonCount = 2;
     BuildDateIndex();
 
     stringstream input("\n15.04.2024\n09:00\n");
@@ -206,6 +500,129 @@ TEST(Search, ByDateTimeFound)
     cin.rdbuf(origIn);
     cout.rdbuf(origOut);
     string out = output.str();
+    EXPECT_NE(string::npos, out.find(msg.recordFound));
+    EXPECT_NE(string::npos, out.find("Physics"));
+}
+
+TEST(Search, ByCurrentFieldTypeAndPriority)
+{
+    resetData();
+    Lesson a, b;
+    a.type = LessonType::Lecture;
+    b.type = LessonType::Practice;
+    a.priority = LessonPriority::Low;
+    b.priority = LessonPriority::High;
+    Lessons[0] = a;
+    Lessons[1] = b;
+    LessonCount = 2;
+
+    CurrentIndexField = FieldType;
+    BuildIndexForCurrentField();
+    stringstream inputType("\n2\n");
+    stringstream outputType;
+    streambuf* origIn = cin.rdbuf();
+    streambuf* origOut = cout.rdbuf();
+    cin.rdbuf(inputType.rdbuf());
+    cout.rdbuf(outputType.rdbuf());
+    SearchByCurrentIndex();
+    cin.rdbuf(origIn);
+    cout.rdbuf(origOut);
+    string outT = outputType.str();
+    EXPECT_NE(string::npos, outT.find("Practice"));
+
+    CurrentIndexField = FieldPriority;
+    BuildIndexForCurrentField();
+    stringstream inputPr("\n3\n");
+    stringstream outputPr;
+    origIn = cin.rdbuf();
+    origOut = cout.rdbuf();
+    cin.rdbuf(inputPr.rdbuf());
+    cout.rdbuf(outputPr.rdbuf());
+    SearchByCurrentIndex();
+    cin.rdbuf(origIn);
+    cout.rdbuf(origOut);
+    string outP = outputPr.str();
+    EXPECT_NE(string::npos, outP.find("Practice"));
+}
+
+TEST(Search, ByCurrentFieldTeacherNotFound)
+{
+    resetData();
+    Lesson a;
+    a.teacher = "Ivanov";
+    Lessons[0] = a;
+    LessonCount = 1;
+    CurrentIndexField = FieldTeacher;
+    BuildIndexForCurrentField();
+    stringstream input("\nPetrov\n");
+    stringstream output;
+    streambuf* origIn = cin.rdbuf();
+    streambuf* origOut = cout.rdbuf();
+    cin.rdbuf(input.rdbuf());
+    cout.rdbuf(output.rdbuf());
+    SearchByCurrentIndex();
+    cin.rdbuf(origIn);
+    cout.rdbuf(origOut);
+    string out = output.str();
+    EXPECT_NE(string::npos, out.find(msg.titleNotFound));
+}
+
+TEST(Search, ByCurrentFieldTitleMatchBranches)
+{
+    resetData();
+    Lesson a, b, c;
+    a.title = "B";
+    b.title = "A";
+    c.title = "C";
+    Lessons[0] = a;
+    Lessons[1] = b;
+    Lessons[2] = c;
+    LessonCount = 3;
+    CurrentIndexField = FieldTitle;
+    BuildIndexForCurrentField();
+
+    stringstream input("\nB\n");
+    stringstream output;
+    streambuf* origIn = cin.rdbuf();
+    streambuf* origOut = cout.rdbuf();
+    cin.rdbuf(input.rdbuf());
+    cout.rdbuf(output.rdbuf());
+    SearchByCurrentIndex();
+    cin.rdbuf(origIn);
+    cout.rdbuf(origOut);
+    string out = output.str();
+    EXPECT_NE(string::npos, out.find(msg.recordFound));
+    EXPECT_NE(string::npos, out.find("B"));
+}
+
+TEST(Search, ByCurrentFieldDateMatchAndInvalids)
+{
+    resetData();
+    Lesson l1;
+    l1.date = "01.01.2024";
+    l1.time = "08:00";
+    Lessons[0] = l1;
+    LessonCount = 1;
+    CurrentIndexField = FieldDateTime;
+    BuildIndexForCurrentField();
+
+    stringstream input(
+        "\n2024-01-01\n"
+        "01.01.2024\n"
+        "25:00\n"
+        "08:00\n"
+    );
+    stringstream output;
+    streambuf* origIn = cin.rdbuf();
+    streambuf* origOut = cout.rdbuf();
+    cin.rdbuf(input.rdbuf());
+    cout.rdbuf(output.rdbuf());
+    SearchByCurrentIndex();
+    cin.rdbuf(origIn);
+    cout.rdbuf(origOut);
+    string out = output.str();
+    EXPECT_NE(string::npos, out.find(msg.invalidDateFormat));
+    EXPECT_NE(string::npos, out.find(msg.invalidTimeOutOfRange));
     EXPECT_NE(string::npos, out.find(msg.recordFound));
 }
 
@@ -282,6 +699,109 @@ TEST(Edit, EditLessonUpdatesAllFields)
     EXPECT_EQ(LessonPriority::High, Lessons[0].priority);
 }
 
+TEST(Edit, NoRecordsBranches)
+{
+    resetData();
+    // Edit with no records
+    EditLesson();
+    // Delete with no records
+    LogicalDeleteLesson();
+    // Restore with no records
+    RestoreDeletedLesson();
+}
+
+TEST(Edit, LogicalDeleteTypeNoMatch)
+{
+    resetData();
+    Lesson l1;
+    l1.type = LessonType::Lecture;
+    Lessons[0] = l1;
+    LessonCount = 1;
+    CurrentIndexField = FieldType;
+    BuildIndexForCurrentField();
+    stringstream input("\n2\n"); // search for Practice
+    streambuf* origIn = cin.rdbuf();
+    streambuf* origOut = cout.rdbuf();
+    stringstream output;
+    cin.rdbuf(input.rdbuf());
+    cout.rdbuf(output.rdbuf());
+    LogicalDeleteLesson();
+    cin.rdbuf(origIn);
+    cout.rdbuf(origOut);
+    string out = output.str();
+    EXPECT_NE(string::npos, out.find(msg.recordNotFound));
+}
+
+TEST(Edit, RestorePriorityNoMatch)
+{
+    resetData();
+    Lesson l1;
+    l1.priority = LessonPriority::Low;
+    l1.deleted = true;
+    Lessons[0] = l1;
+    LessonCount = 1;
+    CurrentIndexField = FieldPriority;
+    stringstream input("\n3\n"); // High
+    streambuf* origIn = cin.rdbuf();
+    streambuf* origOut = cout.rdbuf();
+    stringstream output;
+    cin.rdbuf(input.rdbuf());
+    cout.rdbuf(output.rdbuf());
+    RestoreDeletedLesson();
+    cin.rdbuf(origIn);
+    cout.rdbuf(origOut);
+    string out = output.str();
+    EXPECT_NE(string::npos, out.find(msg.recordNotFound));
+}
+
+TEST(Edit, LogicalDeleteInvalidPriorityInput)
+{
+    resetData();
+    Lesson l1;
+    l1.priority = LessonPriority::Low;
+    Lessons[0] = l1;
+    LessonCount = 1;
+    CurrentIndexField = FieldPriority;
+    BuildIndexForCurrentField();
+    stringstream input("\nBad\n");
+    streambuf* origIn = cin.rdbuf();
+    streambuf* origOut = cout.rdbuf();
+    stringstream output;
+    cin.rdbuf(input.rdbuf());
+    cout.rdbuf(output.rdbuf());
+    LogicalDeleteLesson();
+    cin.rdbuf(origIn);
+    cout.rdbuf(origOut);
+    string out = output.str();
+    EXPECT_NE(string::npos, out.find(msg.recordNotFound));
+}
+
+TEST(Edit, RestoreDateNoMatch)
+{
+    resetData();
+    Lesson l1;
+    l1.date = "01.01.2024";
+    l1.time = "10:00";
+    l1.deleted = true;
+    Lessons[0] = l1;
+    LessonCount = 1;
+    CurrentIndexField = FieldDateTime;
+    stringstream input(
+        "\n02.01.2024\n"
+        "11:00\n"
+    );
+    streambuf* origIn = cin.rdbuf();
+    streambuf* origOut = cout.rdbuf();
+    stringstream output;
+    cin.rdbuf(input.rdbuf());
+    cout.rdbuf(output.rdbuf());
+    RestoreDeletedLesson();
+    cin.rdbuf(origIn);
+    cout.rdbuf(origOut);
+    string out = output.str();
+    EXPECT_NE(string::npos, out.find(msg.recordNotFound));
+}
+
 TEST(IO, PromptHelpersAndMenuAndAddPrint)
 {
     resetData();
@@ -328,6 +848,29 @@ TEST(IO, PromptHelpersAndMenuAndAddPrint)
     EXPECT_NE(string::npos, printed.find("Math"));
     EXPECT_NE(string::npos, printed.find("Teacher"));
     EXPECT_NE(string::npos, printed.find("12:30"));
+}
+
+TEST(IO, PrintByCurrentIndexNoData)
+{
+    resetData();
+    CurrentIndexField = FieldTitle;
+    PrintByCurrentIndex(true);
+    CurrentIndexField = FieldDateTime;
+    PrintByCurrentIndex(false);
+}
+
+TEST(IO, SaveAndLoadErrors)
+{
+    resetData();
+    stringstream output;
+    streambuf* origOut = cout.rdbuf();
+    cout.rdbuf(output.rdbuf());
+    SaveToFile("nonexistent_dir/out.txt", false);
+    LoadFromFile("nonexistent_dir/in.txt");
+    cout.rdbuf(origOut);
+    string out = output.str();
+    EXPECT_NE(string::npos, out.find(msg.fileWriteError));
+    EXPECT_NE(string::npos, out.find(msg.fileReadError));
 }
 
 TEST(IO, SaveToFileCreateAndAppend)

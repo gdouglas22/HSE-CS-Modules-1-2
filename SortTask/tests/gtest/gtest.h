@@ -1,20 +1,24 @@
 #pragma once
 
-#include <functional>
 #include <iostream>
 #include <string>
-#include <vector>
 
 struct TestCase
 {
-    std::string name;
+    const char* name;
     void (*func)();
 };
 
-inline std::vector<TestCase>& GetRegistry()
+inline TestCase* GetRegistry()
 {
-    static std::vector<TestCase> tests;
+    static TestCase tests[256];
     return tests;
+}
+
+inline int& GetTestCount()
+{
+    static int count = 0;
+    return count;
 }
 
 inline int& GetFailureCount()
@@ -23,13 +27,16 @@ inline int& GetFailureCount()
     return fails;
 }
 
-inline bool RegisterTest(const std::string& name, void (*func)())
+inline bool RegisterTest(const char* name, void (*func)())
 {
-    GetRegistry().push_back({name, func});
+    int idx = GetTestCount();
+    GetRegistry()[idx].name = name;
+    GetRegistry()[idx].func = func;
+    GetTestCount() = idx + 1;
     return true;
 }
 
-inline void ReportFailure(const std::string& expr, const std::string& file, int line)
+inline void ReportFailure(const char* expr, const char* file, int line)
 {
     std::cerr << file << ":" << line << " EXPECT FAILED: " << expr << std::endl;
     GetFailureCount() += 1;
@@ -43,11 +50,10 @@ inline bool IsEqual(const T& a, const U& b)
 
 inline int RunAllTests()
 {
-    int total = 0;
-    for (const auto& t : GetRegistry())
+    int total = GetTestCount();
+    for (int i = 0; i < total; ++i)
     {
-        total++;
-        t.func();
+        GetRegistry()[i].func();
     }
     std::cout << "[RUN] " << total << " tests, failures: " << GetFailureCount() << std::endl;
     return GetFailureCount() == 0 ? 0 : 1;
@@ -79,7 +85,7 @@ inline void InitGoogleTest(int*, char**)
     {                                                                                     \
         if (!IsEqual((a), (b)))                                                           \
         {                                                                                 \
-            ReportFailure(std::string(#a " == " #b), __FILE__, __LINE__);                 \
+            ReportFailure(#a " == " #b, __FILE__, __LINE__);                              \
         }                                                                                 \
     } while (0)
 
@@ -88,7 +94,7 @@ inline void InitGoogleTest(int*, char**)
     {                                                                                     \
         if (IsEqual((a), (b)))                                                            \
         {                                                                                 \
-            ReportFailure(std::string(#a " != " #b), __FILE__, __LINE__);                 \
+            ReportFailure(#a " != " #b, __FILE__, __LINE__);                              \
         }                                                                                 \
     } while (0)
 
